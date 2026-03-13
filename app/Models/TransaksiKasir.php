@@ -13,7 +13,8 @@ class TransaksiKasir extends Model
         'setor_tunai',
         'kas_masuk',
         'saldo_rek',
-        'pengeluaran_items'
+        'pengeluaran_items',
+        'sisa_kasir',
     ];
 
     protected $casts = [
