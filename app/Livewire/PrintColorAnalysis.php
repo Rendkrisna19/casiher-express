@@ -18,7 +18,9 @@ class PrintColorAnalysis extends Component
     public $analysisResults = [];
     public $totalPrice = 0;
 
-    // --- LOGIKA HARGA BERDASARKAN GAMBAR PRICELIST ---
+    // Harga Flat untuk Hitam Putih (Bukan Berwarna)
+    public $priceBlackWhite = 200;
+
     public $paperTypes = [
         'Print A4/F4 Warna 70 gsm' => [
             'tiers' => [25 => 300, 50 => 500, 75 => 800, 100 => 1000]
@@ -29,8 +31,6 @@ class PrintColorAnalysis extends Component
         'Print Buffalo Warna' => [
             'tiers' => [25 => 1000, 50 => 1000, 75 => 1500, 100 => 1500]
         ],
-        // Untuk Bolak-Balik, harga di bawah ini adalah harga PER HALAMAN (Per sisi). 
-        // Disesuaikan sedikit lebih hemat atau mengikuti standar.
         'Print A4/F4 Warna 70 gsm Bolak Balik' => [
             'tiers' => [25 => 250, 50 => 450, 75 => 750, 100 => 900]
         ],
@@ -64,12 +64,10 @@ class PrintColorAnalysis extends Component
         $this->totalPrice = 0;
 
         try {
-            // Konfigurasi Ghostscript
             $gsPath = 'C:\PROGRA~1\gs\gs10.06.0\bin\gs.exe';
             putenv("GS_PROG=" . $gsPath);
             putenv("MAGICK_GHOSTSCRIPT_PATH=" . 'C:\PROGRA~1\gs\gs10.06.0\bin');
 
-            // 1. Dapatkan Total Halaman Terlebih Dahulu (Tanpa merender semuanya)
             $ping = new \Imagick();
             $ping->pingImage($filePath);
             $pagesCount = $ping->getNumberImages();
@@ -78,72 +76,89 @@ class PrintColorAnalysis extends Component
 
             $tiers = $this->paperTypes[$this->selectedPaper]['tiers'];
 
-            // 2. Loop dan Render SATU PER SATU (Mencegah halaman rusak/bertumpuk)
             for ($i = 0; $i < $pagesCount; $i++) {
-                
                 $page = new \Imagick();
                 $page->setResolution(150, 150);
-                // Menambahkan [$i] di belakang path akan memaksa Imagick hanya menarik 1 halaman itu saja
                 $page->readImage($filePath . '[' . $i . ']'); 
                 
                 $page->setImageFormat('jpg');
                 $page->setImageBackgroundColor('white');
                 $page->setImageAlphaChannel(\Imagick::ALPHACHANNEL_REMOVE);
-                
                 $processedPage = $page->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
 
-                // Simpan Preview Base64
                 $this->previewImages[] = 'data:image/jpeg;base64,' . base64_encode($processedPage->getImageBlob());
 
-                // Resize gambar sementara agar kalkulasi pixel sangat cepat
                 $sample = clone $processedPage;
                 $sample->resizeImage(100, 100, \Imagick::FILTER_TRIANGLE, 1);
                 
                 $width = $sample->getImageWidth();
                 $height = $sample->getImageHeight();
                 $coloredPixels = 0;
+                $isColorPage = false; // Flag untuk deteksi warna
 
-                // Loop pixel untuk mendeteksi tinta
                 for ($x = 0; $x < $width; $x++) {
                     for ($y = 0; $y < $height; $y++) {
                         $color = $sample->getImagePixelColor($x, $y)->getColor();
-                        // Toleransi 245 agar noise kertas scan tetap dianggap putih kosong
+                        
+                        // 1. Deteksi Tinta (Bukan Putih)
                         if ($color['r'] < 245 || $color['g'] < 245 || $color['b'] < 245) {
                             $coloredPixels++;
+
+                            // 2. Deteksi Apakah Ini Warna atau Hitam Putih
+                            // Jika selisih antara R, G, dan B besar, berarti itu warna.
+                            // Toleransi 15-20 pixel biasanya cukup untuk menangani kompresi JPG
+                            if (!$isColorPage) {
+                                $diff1 = abs($color['r'] - $color['g']);
+                                $diff2 = abs($color['g'] - $color['b']);
+                                $diff3 = abs($color['r'] - $color['b']);
+
+                                if ($diff1 > 20 || $diff2 > 20 || $diff3 > 20) {
+                                    $isColorPage = true;
+                                }
+                            }
                         }
                     }
                 }
 
                 $percentage = ($coloredPixels / ($width * $height)) * 100;
-                
-                // --- LOGIKA HARGA BERDASARKAN GAMBAR DAFTAR HARGA ---
                 $calculatedPrice = 0;
+                $typeLabel = 'Warna';
                 
-                if ($percentage <= 25) {
-                    $calculatedPrice = $tiers[25];
-                } elseif ($percentage <= 50) {
-                    $calculatedPrice = $tiers[50];
-                } elseif ($percentage <= 75) {
-                    $calculatedPrice = $tiers[75];
+                // --- LOGIKA PENENTUAN HARGA ---
+                if (!$isColorPage && $percentage > 0) {
+                    // Jika Hitam Putih (Grayscale)
+                    $calculatedPrice = $this->priceBlackWhite;
+                    $typeLabel = 'Hitam Putih';
+                } elseif ($percentage == 0) {
+                    // Halaman Kosong
+                    $calculatedPrice = 0;
+                    $typeLabel = 'Kosong';
                 } else {
-                    $calculatedPrice = $tiers[100]; // Full Block
+                    // Jika Berwarna
+                    if ($percentage <= 25) {
+                        $calculatedPrice = $tiers[25];
+                    } elseif ($percentage <= 50) {
+                        $calculatedPrice = $tiers[50];
+                    } elseif ($percentage <= 75) {
+                        $calculatedPrice = $tiers[75];
+                    } else {
+                        $calculatedPrice = $tiers[100];
+                    }
                 }
 
                 $this->analysisResults[] = [
                     'page' => $i + 1,
+                    'type' => $typeLabel,
                     'percentage' => round($percentage, 1) . ' %',
                     'price' => $calculatedPrice
                 ];
 
                 $this->totalPrice += $calculatedPrice;
                 
-                // Bersihkan memory total di setiap iterasi agar server tidak ngehang
-                $page->clear();
-                $page->destroy();
-                $processedPage->clear();
-                $processedPage->destroy();
-                $sample->clear();
-                $sample->destroy();
+                // Cleanup
+                $page->clear(); $page->destroy();
+                $processedPage->clear(); $processedPage->destroy();
+                $sample->clear(); $sample->destroy();
             }
 
             $this->currentView = 'result';

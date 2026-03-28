@@ -13,24 +13,23 @@ class HitungPenghasilan extends Component
     public $transaksiId;
 
     // Variabel Form Utama
-    public $sisa_kasir = 0; // Input Baru pengganti manual HP
+    public $sisa_kasir = 0; 
     public $saldo_sebelum = 0;
     public $saldo_masuk_rek = 0;
     public $setor_tunai = 0;
-    public $kas_masuk = 0;
+    public $kas_masuk = 0; // Hanya sebagai catatan/informasi
     public $saldo_rek = 0;
     public $pengeluaranItems = [];
     
-    // Variabel Form Modal Pengeluaran
+    // Variabel Form Modal
     public $new_nama_transaksi = '';
     public $new_price = 0;
-    public $new_jenis = 'UA'; // Default Dropdown UA, UB, UR
+    public $new_jenis = 'UA'; 
     public $new_keterangan = '';
 
     public function mount()
     {
         $data = TransaksiKasir::latest()->first();
-
         if ($data) {
             $this->transaksiId = $data->id;
             $this->sisa_kasir = $data->sisa_kasir ?? 0;
@@ -43,35 +42,30 @@ class HitungPenghasilan extends Component
         }
     }
 
-    // Menghitung Total Pengeluaran Khusus UA (Untuk Rumus HP)
-   public function getTotalUAProperty()
+    public function getTotalUAProperty()
     {
         return array_sum(array_column(array_filter($this->pengeluaranItems, function($item) {
-            // Tambahkan ?? 'UA' agar data lama yang tidak punya 'jenis' tidak error
-            // dan otomatis dianggap sebagai pengeluaran Kasir (UA)
             return ($item['jenis'] ?? 'UA') === 'UA'; 
         }), 'price'));
     }
 
-    // Menghitung Total Semua Pengeluaran
     public function getTotalPengeluaranProperty()
     {
         return array_sum(array_column($this->pengeluaranItems, 'price'));
     }
 
-    // RUMUS 1: HP (Hasil Penjualan) = Sisa Kasir + Pengeluaran(UA) + Saldo Masuk Rek
     public function getHasilPenjualanProperty()
     {
-        return (int)$this->sisa_kasir + $this->totalUA + (int)$this->saldo_masuk_rek;
+        return (int)$this->sisa_kasir + (int)$this->totalUA + (int)$this->saldo_masuk_rek;
     }
 
-    // RUMUS 2: Saldo Bawah = Saldo Sebelum + HP - Pengeluaran Keseluruhan - Setor Tunai - Saldo Masuk Rek (+ Kas Masuk)
+    // FIX RUMUS SALDO BAWAH: Kas Masuk TIDAK DIMASUKKAN ke perhitungan
     public function getSaldoBawahProperty()
     {
-        return ((int)$this->saldo_sebelum + $this->hasilPenjualan + (int)$this->kas_masuk) 
-                - $this->totalPengeluaran 
-                - (int)$this->setor_tunai 
-                - (int)$this->saldo_masuk_rek;
+        $pemasukan = (int)$this->saldo_sebelum + (int)$this->hasilPenjualan;
+        $pengurang = (int)$this->totalPengeluaran + (int)$this->setor_tunai + (int)$this->saldo_masuk_rek;
+        
+        return $pemasukan - $pengurang;
     }
 
     public function autoSave()
@@ -80,7 +74,7 @@ class HitungPenghasilan extends Component
             ['id' => $this->transaksiId],
             [
                 'sisa_kasir' => $this->sisa_kasir,
-                'hasil_penjualan' => $this->hasilPenjualan, // Disimpan otomatis hasil perhitungannya
+                'hasil_penjualan' => $this->hasilPenjualan,
                 'saldo_sebelum' => $this->saldo_sebelum,
                 'saldo_masuk_rek' => $this->saldo_masuk_rek,
                 'setor_tunai' => $this->setor_tunai,
@@ -89,14 +83,8 @@ class HitungPenghasilan extends Component
                 'pengeluaran_items' => $this->pengeluaranItems,
             ]
         );
-
         $this->transaksiId = $transaksi->id;
-
-        $this->dispatch('swal', [
-            'title' => 'Tersimpan!',
-            'text' => 'Data berhasil diperbarui di database.',
-            'icon' => 'success'
-        ]);
+        $this->dispatch('swal', ['title' => 'Tersimpan!', 'text' => 'Data diperbarui.', 'icon' => 'success']);
     }
 
     public function addPengeluaran()
@@ -108,11 +96,8 @@ class HitungPenghasilan extends Component
                 'jenis' => $this->new_jenis,
                 'keterangan' => $this->new_keterangan
             ];
-            
-            // Reset form modal
-            $this->reset(['new_nama_transaksi', 'new_price', 'new_keterangan']);
-            $this->new_jenis = 'UA'; // Kembalikan ke default
-            
+            $this->reset(['new_nama_transaksi', 'new_price', 'new_keterangan', 'new_jenis']);
+            $this->new_jenis = 'UA';
             $this->autoSave();
         }
     }
@@ -126,9 +111,10 @@ class HitungPenghasilan extends Component
 
     public function render()
     {
+        $now = Carbon::now('Asia/Jakarta');
         return view('livewire.hitung-penghasilan', [
-            'tanggal_transaksi' => Carbon::now()->format('d - M - Y'),
-            'waktu_transaksi' => Carbon::now()->format('H:i')
+            'tanggal_transaksi' => $now->translatedFormat('d F Y'),
+            'waktu_transaksi' => $now->format('H:i') . ' WIB'
         ]);
     }
 }
