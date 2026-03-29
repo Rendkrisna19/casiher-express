@@ -6,6 +6,9 @@ use App\Livewire\Dashboard;
 use App\Livewire\HitungPenghasilan;
 use Illuminate\Support\Facades\Auth;
 use App\Livewire\PrintColorAnalysis;
+use App\Livewire\StokBarang;
+use App\Livewire\TransaksiStok;
+use App\Livewire\RiwayatTransaksi;
 
 Route::get('/test-gs', function() {
     return shell_exec('C:\PROGRA~1\gs\gs10.06.0\bin\gswin64c.exe --version');
@@ -32,5 +35,8 @@ Route::get('/print-color-analysis', PrintColorAnalysis::class)
     ->middleware(['auth'])
     ->name('print-color-analysis');
 Route::get('/login', Login::class)->name('login')->middleware('guest');
+Route::get('/stok-barang', StokBarang::class)->name('stok-barang');
+Route::get('/transaksi-stok', TransaksiStok::class)->name('transaksi-stok');
+Route::get('/riwayat-transaksi', RiwayatTransaksi::class)->name('riwayat-transaksi');
 
 require __DIR__.'/auth.php';
