@@ -165,8 +165,8 @@
                         <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Jenis Pengeluaran</label>
                         <select wire:model="new_jenis" class="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-[#121212] focus:ring-[#cc0000] focus:border-[#cc0000] text-gray-900 dark:text-white font-bold">
                             <option value="UA">UA - Uang Atas (Memotong Saldo)</option>
-                            <option value="UB">UB - Uang Bawah (Aman)</option>
-                            <option value="UR">UR - Uang Receh (Aman)</option>
+                            <option value="UB">UB - Uang Bawah</option>
+                            <option value="UR">UR - Uang Rekening</option>
                         </select>
                     </div>
                     <div>
