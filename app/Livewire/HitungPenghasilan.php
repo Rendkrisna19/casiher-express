@@ -12,24 +12,25 @@ class HitungPenghasilan extends Component
 {
     public $transaksiId;
 
-    // Variabel Form Utama
-    public $sisa_kasir = 0; 
+    // Variabel Form
+    public $sisa_kasir = 0;
     public $saldo_sebelum = 0;
     public $saldo_masuk_rek = 0;
     public $setor_tunai = 0;
-    public $kas_masuk = 0; // Hanya sebagai catatan/informasi
+    public $kas_masuk = 0;
     public $saldo_rek = 0;
     public $pengeluaranItems = [];
     
-    // Variabel Form Modal
+    // Variabel Form Modal Pengeluaran
     public $new_nama_transaksi = '';
     public $new_price = 0;
-    public $new_jenis = 'UA'; 
+    public $new_jenis = 'UA'; // Default UA
     public $new_keterangan = '';
 
     public function mount()
     {
         $data = TransaksiKasir::latest()->first();
+
         if ($data) {
             $this->transaksiId = $data->id;
             $this->sisa_kasir = $data->sisa_kasir ?? 0;
@@ -42,6 +43,7 @@ class HitungPenghasilan extends Component
         }
     }
 
+    // Menghitung Total Pengeluaran Khusus UA 
     public function getTotalUAProperty()
     {
         return array_sum(array_column(array_filter($this->pengeluaranItems, function($item) {
@@ -49,23 +51,29 @@ class HitungPenghasilan extends Component
         }), 'price'));
     }
 
+    // Menghitung Total Semua Pengeluaran (Hanya untuk tampilan visual UI)
     public function getTotalPengeluaranProperty()
     {
         return array_sum(array_column($this->pengeluaranItems, 'price'));
     }
 
+    // RUMUS 1: HP = Sisa Kasir + UA + Saldo Masuk Rek
     public function getHasilPenjualanProperty()
     {
-        return (int)$this->sisa_kasir + (int)$this->totalUA + (int)$this->saldo_masuk_rek;
+        return (int)$this->sisa_kasir + $this->totalUA + (int)$this->saldo_masuk_rek;
     }
 
-    // FIX RUMUS SALDO BAWAH: Kas Masuk TIDAK DIMASUKKAN ke perhitungan
+    // RUMUS 2: SALDO BAWAH 
     public function getSaldoBawahProperty()
     {
-        $pemasukan = (int)$this->saldo_sebelum + (int)$this->hasilPenjualan;
-        $pengurang = (int)$this->totalPengeluaran + (int)$this->setor_tunai + (int)$this->saldo_masuk_rek;
-        
-        return $pemasukan - $pengurang;
+        // KUNCI PERBAIKAN: 
+        // Karena $this->hasilPenjualan sudah mengandung +UA, kita harus menguranginya dengan ($this->totalUA * 2).
+        // Ini memastikan Saldo Bawah benar-benar BERKURANG secara nyata setiap kali pengeluaran UA ditambah.
+        // Pengeluaran UB dan UR diabaikan di sini sesuai permintaan Anda.
+        return ((int)$this->saldo_sebelum + $this->hasilPenjualan + (int)$this->kas_masuk) 
+                - ($this->totalUA * 2) 
+                - (int)$this->setor_tunai 
+                - (int)$this->saldo_masuk_rek;
     }
 
     public function autoSave()
@@ -83,8 +91,14 @@ class HitungPenghasilan extends Component
                 'pengeluaran_items' => $this->pengeluaranItems,
             ]
         );
+
         $this->transaksiId = $transaksi->id;
-        $this->dispatch('swal', ['title' => 'Tersimpan!', 'text' => 'Data diperbarui.', 'icon' => 'success']);
+
+        $this->dispatch('swal', [
+            'title' => 'Tersimpan!',
+            'text' => 'Data berhasil diperbarui.',
+            'icon' => 'success'
+        ]);
     }
 
     public function addPengeluaran()
@@ -96,8 +110,10 @@ class HitungPenghasilan extends Component
                 'jenis' => $this->new_jenis,
                 'keterangan' => $this->new_keterangan
             ];
-            $this->reset(['new_nama_transaksi', 'new_price', 'new_keterangan', 'new_jenis']);
-            $this->new_jenis = 'UA';
+            
+            $this->reset(['new_nama_transaksi', 'new_price', 'new_keterangan']);
+            $this->new_jenis = 'UA'; 
+            
             $this->autoSave();
         }
     }
@@ -111,10 +127,9 @@ class HitungPenghasilan extends Component
 
     public function render()
     {
-        $now = Carbon::now('Asia/Jakarta');
         return view('livewire.hitung-penghasilan', [
-            'tanggal_transaksi' => $now->translatedFormat('d F Y'),
-            'waktu_transaksi' => $now->format('H:i') . ' WIB'
+            'tanggal_transaksi' => Carbon::now()->format('d F Y'),
+            'waktu_transaksi' => Carbon::now()->format('H:i') . ' WIB'
         ]);
     }
 }

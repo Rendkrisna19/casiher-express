@@ -13,38 +13,72 @@ class TransaksiStok extends Component
 {
     use WithFileUploads;
 
-    public $searchCode;
+    public $searchCode; 
+    public $searchManual; 
+    public $searchResults = []; 
+
     public $barangTerpilih;
     public $jumlah = 1;
     public $jenis = 'masuk';
     public $keterangan;
     public $bukti;
 
-    // Fungsi otomatis saat Barcode terdeteksi oleh JS/Upload
+    public function updatedSearchManual($value)
+    {
+        if (strlen($value) >= 2) {
+            $this->searchResults = Barang::where('nama_barang', 'like', '%' . $value . '%')
+                ->orWhere('kode_barang', 'like', '%' . $value . '%')
+                ->limit(5)
+                ->get();
+        } else {
+            $this->searchResults = [];
+        }
+    }
+
+    public function pilihBarangManual($id)
+    {
+        $this->barangTerpilih = Barang::find($id);
+        $this->searchManual = '';
+        $this->searchResults = [];
+        
+        $this->siapkanForm();
+        
+        $this->dispatch('swal', [
+            'title' => 'Terpilih!',
+            'text' => $this->barangTerpilih->nama_barang,
+            'icon' => 'success'
+        ]);
+    }
+
     public function updatedSearchCode($value)
     {
         $this->barangTerpilih = Barang::where('kode_barang', $value)->first();
         
         if (!$this->barangTerpilih) {
-            // Trigger SweetAlert Gagal
             $this->dispatch('swal', [
-                'title' => 'Barang Tidak Ditemukan!',
-                'text' => 'Kode ' . $value . ' belum terdaftar di sistem.',
+                'title' => 'Tidak Ditemukan!',
+                'text' => 'Kode SKU ' . $value . ' tidak terdaftar di sistem.',
                 'icon' => 'error'
             ]);
-            $this->reset('barangTerpilih'); 
+            $this->reset('barangTerpilih', 'searchCode'); 
         } else {
-            // Trigger SweetAlert Berhasil Deteksi
+            $this->siapkanForm();
+            
             $this->dispatch('swal', [
                 'title' => 'Terdeteksi!',
                 'text' => $this->barangTerpilih->nama_barang,
-                'icon' => 'success',
-                'timer' => 1500 // Akan tertutup otomatis dalam 1.5 detik
+                'icon' => 'success'
             ]);
-            
-            $this->jumlah = 1;
-            $this->jenis = 'masuk';
         }
+        
+        $this->searchCode = ''; 
+    }
+
+    private function siapkanForm()
+    {
+        $this->jumlah = 1;
+        $this->jenis = 'masuk';
+        $this->resetValidation();
     }
 
     public function simpanTransaksi()
@@ -52,7 +86,7 @@ class TransaksiStok extends Component
         if (!$this->barangTerpilih) {
             $this->dispatch('swal', [
                 'title' => 'Gagal!',
-                'text' => 'Silakan scan barang terlebih dahulu.',
+                'text' => 'Silakan scan atau pilih barang terlebih dahulu.',
                 'icon' => 'warning'
             ]);
             return;
@@ -68,7 +102,7 @@ class TransaksiStok extends Component
         if ($this->jenis === 'keluar' && $this->barangTerpilih->stok < $this->jumlah) {
             $this->dispatch('swal', [
                 'title' => 'Stok Kurang!',
-                'text' => 'Sisa stok tidak cukup untuk melakukan transaksi keluar.',
+                'text' => 'Sisa stok (' . $this->barangTerpilih->stok . ') tidak cukup untuk dikeluarkan.',
                 'icon' => 'error'
             ]);
             return;
@@ -90,15 +124,14 @@ class TransaksiStok extends Component
             $this->barangTerpilih->decrement('stok', $this->jumlah);
         }
 
-        // Trigger SweetAlert Sukses Simpan Data
-        $this->dispatch('swal', [
+        // PERUBAHAN: Gunakan swal-reload agar frontend tahu harus auto-reload
+        $this->dispatch('swal-reload', [
             'title' => 'Transaksi Berhasil!',
-            'text' => 'Stok ' . $this->barangTerpilih->nama_barang . ' telah berhasil diperbarui.',
+            'text' => 'Stok ' . $this->barangTerpilih->nama_barang . ' telah diperbarui.',
             'icon' => 'success'
         ]);
 
-        // Kembalikan form ke posisi standby
-        $this->reset(['barangTerpilih', 'searchCode', 'jumlah', 'keterangan', 'bukti']);
+        $this->reset(['barangTerpilih', 'searchCode', 'searchManual', 'searchResults', 'jumlah', 'keterangan', 'bukti']);
     }
 
     public function render() {

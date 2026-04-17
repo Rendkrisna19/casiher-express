@@ -43,16 +43,19 @@
                 </div>
                 @endforeach
 
-                <div class="flex items-center gap-4 py-4 border-t border-gray-200 dark:border-gray-800 mt-4">
-                    <label class="w-1/3 text-sm font-bold text-gray-700 dark:text-gray-300">Total Pengeluaran</label>
+                <div class="flex items-start gap-4 py-4 border-t border-gray-200 dark:border-gray-800 mt-4">
+                    <div class="w-1/3">
+                        <label class="text-sm font-bold text-gray-700 dark:text-gray-300">Total Pengeluaran</label>
+                        <p class="text-[9px] font-bold text-red-500 mt-1">*Hanya UA memotong Saldo Bawah</p>
+                    </div>
                     <div class="w-2/3 flex gap-2">
                         <div class="relative flex-1">
                             <span class="absolute left-3 top-2.5 text-gray-500 text-sm">Rp.</span>
                             <input type="text" readonly value="{{ number_format($this->totalPengeluaran, 0, ',', '.') }}" class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-right font-bold focus:outline-none cursor-not-allowed">
                         </div>
-                        <button @click="showModal = true" type="button" class="bg-[#cc0000] hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-md transition whitespace-nowrap flex items-center gap-2">
+                        <button @click="showModal = true" type="button" class="bg-[#cc0000] hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-md transition whitespace-nowrap flex items-center gap-2 h-[42px]">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                            Input Pengeluaran
+                            Input
                         </button>
                     </div>
                 </div>
@@ -77,7 +80,7 @@
             
             <div class="flex justify-between text-xs mb-6 font-medium border-b border-gray-200 dark:border-gray-800 pb-4">
                 <div>
-                    <p>Admin : {{ auth()->user()->name ?? 'Kasir' }}</p>
+                    <p>Admin : {{ auth()->user()->name ?? 'Administrator' }}</p>
                     <p>Waktu : {{ $waktu_transaksi }}</p>
                 </div>
                 <div class="text-right">
@@ -86,46 +89,47 @@
                 </div>
             </div>
 
-           <div class="space-y-2 text-sm flex-1 overflow-y-auto custom-scrollbar pr-2">
-    <div class="flex justify-between border-b border-gray-300 dark:border-gray-700 pb-1 mb-2 font-bold">
-        <span>Nama Transaksi</span>
-        <span>Rp.</span>
-    </div>
-
-    <div class="flex justify-between"><span>Sisa Kasir</span><span>{{ number_format($sisa_kasir, 0, ',', '.') }}</span></div>
-    <div class="flex justify-between font-bold text-red-600 italic"><span>Hasil Penjualan (HP)</span><span>{{ number_format($this->hasilPenjualan, 0, ',', '.') }}</span></div>
-    <div class="flex justify-between"><span>Saldo Sebelum</span><span>{{ number_format($saldo_sebelum, 0, ',', '.') }}</span></div>
-    <div class="flex justify-between"><span>Saldo Masuk Rek</span><span>{{ number_format($saldo_masuk_rek, 0, ',', '.') }}</span></div>
-    <div class="flex justify-between"><span>Setor Tunai</span><span>{{ number_format($setor_tunai, 0, ',', '.') }}</span></div>
-    
-    <div class="flex justify-between text-gray-600 dark:text-gray-400 font-bold bg-gray-50 dark:bg-gray-900/10 px-1 rounded">
-        <span>Kas Masuk (+)</span>
-        <span>{{ number_format($kas_masuk, 0, ',', '.') }}</span>
-    </div>
-    
-    @if(count($pengeluaranItems) > 0)
-        <div class="pt-2 mt-2 border-t border-dashed border-gray-300 dark:border-gray-700">
-            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Rincian Pengeluaran:</span>
-            @foreach($pengeluaranItems as $index => $item)
-                <div class="flex justify-between text-[#cc0000] dark:text-red-400 text-xs mt-1 items-center group transition-all">
-                    <span class="flex items-center gap-1">
-                        <button wire:click="removePengeluaran({{ $index }})" class="text-red-500 hover:text-red-800 opacity-0 group-hover:opacity-100 transition">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                        <span class="font-mono">[{{ $item['jenis'] ?? 'UA' }}]</span> {{ $item['nama'] }}
-                    </span>
-                    <span>{{ number_format($item['price'], 0, ',', '.') }}</span>
+            <div class="space-y-2 text-sm flex-1 overflow-y-auto custom-scrollbar pr-2">
+                <div class="flex justify-between border-b border-gray-300 dark:border-gray-700 pb-1 mb-2 font-bold">
+                    <span>Nama Transaksi</span>
+                    <span>Rp.</span>
                 </div>
-            @endforeach
-        </div>
-    @endif
-    
-    <div class="flex justify-between pt-2 border-t border-dashed border-gray-300 dark:border-gray-700 mt-2 font-medium">
-        <span>Saldo Rek</span><span>{{ number_format($saldo_rek, 0, ',', '.') }}</span>
-    </div>
-</div>
+
+                <div class="flex justify-between"><span>Sisa Kasir</span><span>{{ number_format($sisa_kasir, 0, ',', '.') }}</span></div>
+                <div class="flex justify-between font-bold text-[#cc0000] italic"><span>Hasil Penjualan (HP)</span><span>{{ number_format($this->hasilPenjualan, 0, ',', '.') }}</span></div>
+                <div class="flex justify-between"><span>Saldo Sebelum</span><span>{{ number_format($saldo_sebelum, 0, ',', '.') }}</span></div>
+                <div class="flex justify-between"><span>Saldo Masuk Rek</span><span>{{ number_format($saldo_masuk_rek, 0, ',', '.') }}</span></div>
+                <div class="flex justify-between"><span>Setor Tunai</span><span>{{ number_format($setor_tunai, 0, ',', '.') }}</span></div>
+                
+                <div class="flex justify-between text-gray-600 dark:text-gray-400 font-bold bg-gray-50 dark:bg-gray-900/10 px-1 rounded mt-1">
+                    <span>Kas Masuk (+)</span>
+                    <span>{{ number_format($kas_masuk, 0, ',', '.') }}</span>
+                </div>
+                
+                @if(count($pengeluaranItems) > 0)
+                    <div class="pt-2 mt-2 border-t border-dashed border-gray-300 dark:border-gray-700">
+                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Rincian Pengeluaran:</span>
+                        @foreach($pengeluaranItems as $index => $item)
+                            <div class="flex justify-between text-[#cc0000] dark:text-red-400 text-xs mt-1 items-center group transition-all">
+                                <span class="flex items-center gap-1">
+                                    <button wire:click="removePengeluaran({{ $index }})" class="text-red-500 hover:text-red-800 opacity-0 group-hover:opacity-100 transition">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                    <span class="font-bold">[{{ $item['jenis'] ?? 'UA' }}]</span> {{ $item['nama'] }}
+                                </span>
+                                <span>{{ number_format($item['price'], 0, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                
+                <div class="flex justify-between pt-4 border-t border-gray-300 dark:border-gray-700 mt-4 font-bold">
+                    <span>Saldo Rek</span><span>{{ number_format($saldo_rek, 0, ',', '.') }}</span>
+                </div>
+            </div>
+
             <div class="mt-4 pt-4 border-t-2 border-gray-900 dark:border-gray-100 flex justify-between items-center bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                <span class="text-lg font-bold uppercase">Saldo Bawah</span>
+                <span class="text-lg font-black uppercase">SALDO BAWAH</span>
                 <span class="text-2xl font-black text-[#cc0000]">Rp. {{ number_format($this->saldoBawah, 0, ',', '.') }}</span>
             </div>
         </div>
@@ -160,9 +164,9 @@
                     <div>
                         <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Jenis Pengeluaran</label>
                         <select wire:model="new_jenis" class="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-[#121212] focus:ring-[#cc0000] focus:border-[#cc0000] text-gray-900 dark:text-white font-bold">
-                            <option value="UA">UA </option>
-                            <option value="UB">UB </option>
-                            <option value="UR">UR </option>
+                            <option value="UA">UA - Uang Atas (Memotong Saldo)</option>
+                            <option value="UB">UB - Uang Bawah (Aman)</option>
+                            <option value="UR">UR - Uang Receh (Aman)</option>
                         </select>
                     </div>
                     <div>
@@ -195,7 +199,7 @@
     <script>
         document.addEventListener('livewire:initialized', () => {
             @this.on('swal', (event) => {
-                const data = event[0]; 
+                const data = event[0] || event.detail; 
                 Swal.fire({
                     title: data.title,
                     text: data.text,
