@@ -46,7 +46,7 @@
                 <div class="flex items-start gap-4 py-4 border-t border-gray-200 dark:border-gray-800 mt-4">
                     <div class="w-1/3">
                         <label class="text-sm font-bold text-gray-700 dark:text-gray-300">Total Pengeluaran</label>
-                        <p class="text-[9px] font-bold text-red-500 mt-1">*Hanya UA memotong Saldo Bawah</p>
+                        <p class="text-[9px] font-bold text-red-500 mt-1">*Hanya UA & UB memotong Saldo Bawah</p>
                     </div>
                     <div class="w-2/3 flex gap-2">
                         <div class="relative flex-1">
@@ -110,14 +110,18 @@
                     <div class="pt-2 mt-2 border-t border-dashed border-gray-300 dark:border-gray-700">
                         <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Rincian Pengeluaran:</span>
                         @foreach($pengeluaranItems as $index => $item)
-                            <div class="flex justify-between text-[#cc0000] dark:text-red-400 text-xs mt-1 items-center group transition-all">
+                            @php
+                                $tipe = $item['jenis'] ?? 'UA';
+                                $warnaTipe = $tipe === 'UA' ? 'text-red-600' : ($tipe === 'UB' ? 'text-yellow-600' : 'text-blue-500');
+                            @endphp
+                            <div class="flex justify-between text-gray-700 dark:text-gray-300 text-xs mt-1 items-center group transition-all">
                                 <span class="flex items-center gap-1">
                                     <button wire:click="removePengeluaran({{ $index }})" class="text-red-500 hover:text-red-800 opacity-0 group-hover:opacity-100 transition">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                     </button>
-                                    <span class="font-bold">[{{ $item['jenis'] ?? 'UA' }}]</span> {{ $item['nama'] }}
+                                    <span class="font-bold {{ $warnaTipe }}">[{{ $tipe }}]</span> {{ $item['nama'] }}
                                 </span>
-                                <span>{{ number_format($item['price'], 0, ',', '.') }}</span>
+                                <span class="font-medium">{{ number_format($item['price'], 0, ',', '.') }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -164,9 +168,9 @@
                     <div>
                         <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Jenis Pengeluaran</label>
                         <select wire:model="new_jenis" class="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-[#121212] focus:ring-[#cc0000] focus:border-[#cc0000] text-gray-900 dark:text-white font-bold">
-                            <option value="UA">UA - Uang Atas (Memotong Saldo)</option>
-                            <option value="UB">UB - Uang Bawah</option>
-                            <option value="UR">UR - Uang Rekening</option>
+                            <option value="UA">UA - Uang Atas (Memotong Saldo & Masuk HP)</option>
+                            <option value="UB">UB - Uang Bawah (Memotong Saldo)</option>
+                            <option value="UR">UR - Uang Receh (Aman)</option>
                         </select>
                     </div>
                     <div>

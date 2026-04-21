@@ -7,7 +7,11 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>{{ config('app.name', 'Express Cashier') }}</title>
+        
+        <title>{{ $title ?? 'Express Cashier' }}</title>
+
+        <link rel="icon" href="{{ asset('assets/images/logo.jpg') }}" type="image/jpeg">
+        <link rel="apple-touch-icon" href="{{ asset('assets/images/logo.jpg') }}">
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,6 +73,11 @@
                         </button>
                     </div>
 
+                    <div class="px-6 mb-4 hidden lg:flex items-center gap-3">
+                         <img src="{{ asset('assets/images/logo.jpg') }}" alt="Logo" class="w-8 h-8 rounded-lg object-cover shadow-sm">
+                         <h2 class="font-black text-sm tracking-tight text-gray-800 dark:text-white uppercase">Express Cashier</h2>
+                    </div>
+
                     <div class="px-6 mb-6">
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -128,7 +137,7 @@
                 
                 <header class="lg:hidden flex items-center justify-between bg-white dark:bg-[#1e1e1e] p-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-black">E</div>
+                        <img src="{{ asset('assets/images/logo.jpg') }}" alt="Logo" class="w-8 h-8 rounded-lg object-cover">
                         <h1 class="font-black text-lg tracking-tight text-gray-800 dark:text-white uppercase">Express Cashier</h1>
                     </div>
                     <button @click="sidebarOpen = true" class="p-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-600 dark:text-gray-300 focus:outline-none hover:text-primary transition-colors">

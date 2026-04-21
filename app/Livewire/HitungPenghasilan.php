@@ -43,7 +43,7 @@ class HitungPenghasilan extends Component
         }
     }
 
-    // Menghitung Total Pengeluaran Khusus UA 
+    // Menghitung Total Pengeluaran Khusus UA (Mempengaruhi HP)
     public function getTotalUAProperty()
     {
         return array_sum(array_column(array_filter($this->pengeluaranItems, function($item) {
@@ -51,7 +51,15 @@ class HitungPenghasilan extends Component
         }), 'price'));
     }
 
-    // Menghitung Total Semua Pengeluaran (Hanya untuk tampilan visual UI)
+    // Menghitung Total Pengeluaran Khusus UB (Memotong Saldo Bawah tapi tidak masuk HP)
+    public function getTotalUBProperty()
+    {
+        return array_sum(array_column(array_filter($this->pengeluaranItems, function($item) {
+            return ($item['jenis'] ?? 'UA') === 'UB'; 
+        }), 'price'));
+    }
+
+    // Menghitung Total Semua Pengeluaran (Visual UI)
     public function getTotalPengeluaranProperty()
     {
         return array_sum(array_column($this->pengeluaranItems, 'price'));
@@ -66,12 +74,15 @@ class HitungPenghasilan extends Component
     // RUMUS 2: SALDO BAWAH 
     public function getSaldoBawahProperty()
     {
-        // KUNCI PERBAIKAN: 
-        // Karena $this->hasilPenjualan sudah mengandung +UA, kita harus menguranginya dengan ($this->totalUA * 2).
-        // Ini memastikan Saldo Bawah benar-benar BERKURANG secara nyata setiap kali pengeluaran UA ditambah.
-        // Pengeluaran UB dan UR diabaikan di sini sesuai permintaan Anda.
+        // REVISI LOGIKA:
+        // 1. $this->hasilPenjualan (HP) sudah membawa nilai +UA di dalamnya.
+        // 2. Karena UA harus memotong saldo, kita kurangi ($this->totalUA * 2). (Satu untuk menetralkan HP, satu untuk memotong saldo asli).
+        // 3. UB juga harus memotong saldo, tapi karena UB tidak masuk HP, kita cukup menguranginya 1x saja (- $this->totalUB).
+        // 4. UR diabaikan karena sifatnya netral.
+        
         return ((int)$this->saldo_sebelum + $this->hasilPenjualan + (int)$this->kas_masuk) 
                 - ($this->totalUA * 2) 
+                - $this->totalUB 
                 - (int)$this->setor_tunai 
                 - (int)$this->saldo_masuk_rek;
     }
